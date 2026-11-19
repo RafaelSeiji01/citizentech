@@ -1,8 +1,8 @@
-# CitizenTech — API da Comunidade do Metrô de SP
+# Mobis — API da Comunidade do Metrô de SP
 
-API REST desenvolvida para a **Global Solution 2026.2 (FIAP)** — tema **CitizenTech**.
+O **Mobis** é um aplicativo para a comunidade que usa o Metrô de São Paulo. Este repositório contém a sua **API REST**, desenvolvida para a **Global Solution 2026.2 (FIAP)** — tema **CitizenTech**.
 
-A aplicação é a base de uma rede social para quem usa o Metrô de São Paulo: os usuários se cadastram, acompanham o **status de cada estação**, **reportam ocorrências** (atrasos, lotação, paralisação, escada rolante parada) e conversam no **mural (chat) de cada estação**.
+O Mobis funciona como uma rede social para quem usa o metrô: os usuários se cadastram, acompanham o **status de cada estação**, **reportam ocorrências** (atrasos, lotação, paralisação, escada rolante parada) e conversam no **mural (chat) de cada estação**.
 
 O diferencial é que **a informação é validada pela própria comunidade**: uma ocorrência só passa a valer depois de receber **3 confirmações** de outros usuários. A partir daí, o status da estação é atualizado automaticamente e o autor ganha pontos de reputação.
 
@@ -38,9 +38,10 @@ O diferencial é que **a informação é validada pela própria comunidade**: um
 
 | Nome | RM |
 |---|---|
-| _Nome completo_ | _RM00000_ |
-| _Nome completo_ | _RM00000_ |
-| _Nome completo_ | _RM00000_ |
+| Kauê Soares Madarazzo | RM562100 |
+| Nicolas Mendes dos Santos | RM566290 |
+| Rafael Seiji Aoke Arakaki | RM561993 |
+| Rafael Yuji Nakaya | RM563624 |
 
 ---
 
