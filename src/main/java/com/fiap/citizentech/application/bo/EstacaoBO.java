@@ -20,15 +20,9 @@ public class EstacaoBO {
 
     private final EstacaoDAO estacaoDao;
 
-    public List<Estacao> listarTodas(String linha) throws SQLException {
-        List<Estacao> estacoes = estacaoDao.listarTodas();
-        if (linha == null || linha.isBlank()) {
-            return estacoes;
-        }
-        // Filtro opcional: ?linha=1-Azul
-        return estacoes.stream()
-                .filter(e -> e.getLinha().equalsIgnoreCase(linha))
-                .toList();
+    // Para ver as estações de uma linha, na ordem do trajeto: GET /linhas/{id}/estacoes
+    public List<Estacao> listarTodas() throws SQLException {
+        return estacaoDao.listarTodas();
     }
 
     public Estacao buscarPorId(Long id) throws SQLException {
@@ -40,6 +34,10 @@ public class EstacaoBO {
     }
 
     public void criar(Estacao e) throws SQLException {
+        // Regra: cada estação existe uma vez só (NM_ESTACAO UNIQUE)
+        if (estacaoDao.buscarPorNome(e.getNome()) != null) {
+            throw new RegraNegocioException("Já existe uma estação com o nome " + e.getNome());
+        }
         // Se não informar o status, a estação começa NORMAL
         if (e.getStatusAtual() == null || e.getStatusAtual().isBlank()) {
             e.setStatusAtual("NORMAL");

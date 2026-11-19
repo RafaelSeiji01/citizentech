@@ -19,14 +19,13 @@ public class EstacaoDAO {
     private final ConnectionFactory connectionFactory;
 
     public void inserir(Estacao e) throws SQLException {
-        String sql = "INSERT INTO TB_MTR_ESTACAO (NM_ESTACAO, DS_LINHA, ST_ESTACAO) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO TB_MTR_ESTACAO (NM_ESTACAO, ST_ESTACAO) VALUES (?, ?)";
 
         try (Connection conexao = connectionFactory.obterConexao();
              PreparedStatement ps = conexao.prepareStatement(sql, new String[]{"ID_ESTACAO"})) {
 
             ps.setString(1, e.getNome());
-            ps.setString(2, e.getLinha());
-            ps.setString(3, e.getStatusAtual());
+            ps.setString(2, e.getStatusAtual());
             ps.executeUpdate();
 
             try (ResultSet rs = ps.getGeneratedKeys()) {
@@ -38,7 +37,7 @@ public class EstacaoDAO {
     }
 
     public List<Estacao> listarTodas() throws SQLException {
-        String sql = "SELECT * FROM TB_MTR_ESTACAO ORDER BY DS_LINHA, ID_ESTACAO";
+        String sql = "SELECT * FROM TB_MTR_ESTACAO ORDER BY NM_ESTACAO";
         List<Estacao> lista = new ArrayList<>();
 
         try (Connection conexao = connectionFactory.obterConexao();
@@ -65,6 +64,20 @@ public class EstacaoDAO {
         }
     }
 
+    // Usado pelo BO: o nome da estação é único (cada estação existe uma vez só)
+    public Estacao buscarPorNome(String nome) throws SQLException {
+        String sql = "SELECT * FROM TB_MTR_ESTACAO WHERE LOWER(NM_ESTACAO) = LOWER(?)";
+
+        try (Connection conexao = connectionFactory.obterConexao();
+             PreparedStatement ps = conexao.prepareStatement(sql)) {
+
+            ps.setString(1, nome);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? montarEstacao(rs) : null;
+            }
+        }
+    }
+
     public void atualizarStatus(Long id, String novoStatus) throws SQLException {
         String sql = "UPDATE TB_MTR_ESTACAO SET ST_ESTACAO = ? WHERE ID_ESTACAO = ?";
 
@@ -77,23 +90,40 @@ public class EstacaoDAO {
         }
     }
 
+    /**
+     * Apaga a estação e tudo que depende dela (ligações com linhas,
+     * mensagens e ocorrências), numa única TRANSAÇÃO.
+     * Assim funciona mesmo que as chaves estrangeiras não tenham ON DELETE CASCADE.
+     */
     public void deletar(Long id) throws SQLException {
-        String sql = "DELETE FROM TB_MTR_ESTACAO WHERE ID_ESTACAO = ?";
+        String[] comandos = {
+                "DELETE FROM TB_MTR_LINHA_ESTACAO WHERE ID_ESTACAO = ?",
+                "DELETE FROM TB_MTR_MENSAGEM_CHAT WHERE ID_ESTACAO = ?",
+                "DELETE FROM TB_MTR_OCORRENCIA WHERE ID_ESTACAO = ?",
+                "DELETE FROM TB_MTR_ESTACAO WHERE ID_ESTACAO = ?"
+        };
 
-        try (Connection conexao = connectionFactory.obterConexao();
-             PreparedStatement ps = conexao.prepareStatement(sql)) {
-
-            ps.setLong(1, id);
-            ps.executeUpdate();
+        try (Connection conexao = connectionFactory.obterConexao()) {
+            conexao.setAutoCommit(false);   // inicia a transação
+            try {
+                for (String sql : comandos) {
+                    try (PreparedStatement ps = conexao.prepareStatement(sql)) {
+                        ps.setLong(1, id);
+                        ps.executeUpdate();
+                    }
+                }
+                conexao.commit();           // confirma tudo
+            } catch (SQLException e) {
+                conexao.rollback();         // desfaz tudo se algo falhar
+                throw e;
+            }
         }
     }
 
-    // Converte a linha atual do ResultSet em um objeto Estacao
     private Estacao montarEstacao(ResultSet rs) throws SQLException {
         return new Estacao(
                 rs.getLong("ID_ESTACAO"),
                 rs.getString("NM_ESTACAO"),
-                rs.getString("DS_LINHA"),
                 rs.getString("ST_ESTACAO")
         );
     }

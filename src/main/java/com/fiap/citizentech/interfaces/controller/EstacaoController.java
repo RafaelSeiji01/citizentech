@@ -27,14 +27,12 @@ public class EstacaoController {
 
     private final EstacaoBO estacaoBo;
 
-    // GET /estacoes              -> todas
-    // GET /estacoes?linha=1-Azul -> só de uma linha
+    // GET /estacoes  -> todas, em ordem alfabética
+// (estações de uma linha, na ordem do trajeto: GET /linhas/{id}/estacoes)
     @GetMapping
-    public ResponseEntity<List<Estacao>> listarTodas(
-            @RequestParam(required = false) String linha) throws SQLException {
-        return ResponseEntity.ok(estacaoBo.listarTodas(linha));
+    public ResponseEntity<List<Estacao>> listarTodas() throws SQLException {
+        return ResponseEntity.ok(estacaoBo.listarTodas());
     }
-
     // GET /estacoes/{id}
     @GetMapping("/{id}")
     public ResponseEntity<Estacao> buscarPorId(@PathVariable Long id) throws SQLException {

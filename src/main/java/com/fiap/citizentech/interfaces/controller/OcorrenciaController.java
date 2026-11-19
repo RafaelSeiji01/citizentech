@@ -45,10 +45,10 @@ public class OcorrenciaController {
         return ResponseEntity.ok(ocorrenciaBo.confirmarOcorrencia(id));
     }
 
-    // PUT /ocorrencias/{id}/encerrar  -> problema resolvido
-    @PutMapping("/{id}/encerrar")
-    public ResponseEntity<Ocorrencia> encerrar(@PathVariable Long id) throws SQLException {
-        return ResponseEntity.ok(ocorrenciaBo.encerrarOcorrencia(id));
+    // PUT /ocorrencias/{id}/resolver  -> problema resolvido
+    @PutMapping("/{id}/resolver")
+    public ResponseEntity<Ocorrencia> resolver(@PathVariable Long id) throws SQLException {
+        return ResponseEntity.ok(ocorrenciaBo.resolverOcorrencia(id));
     }
 
     // DELETE /ocorrencias/{id}

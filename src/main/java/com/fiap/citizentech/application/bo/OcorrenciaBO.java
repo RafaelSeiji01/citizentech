@@ -18,12 +18,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class OcorrenciaBO {
 
+    // Mesmos valores usados no banco (TP_OCORRENCIA)
     public static final List<String> TIPOS_VALIDOS = List.of(
-            "LENTIDAO", "PARALISACAO", "SUPERLOTACAO", "SEGURANCA",
-            "ACESSIBILIDADE", "LIMPEZA", "OUTRO");
-
-    // Quantas confirmações a comunidade precisa dar para a ocorrência valer
-    public static final int CONFIRMACOES_NECESSARIAS = 3;
+            "LOTACAO", "ATRASO", "PARALISACAO", "ESCADA_ROLANTE");
 
     // Pontos que o autor ganha quando a ocorrência dele é confirmada
     public static final int PONTOS_OCORRENCIA_CONFIRMADA = 10;
@@ -55,22 +52,20 @@ public class OcorrenciaBO {
         o.setTipo(tipo);
         o.setDataHora(LocalDateTime.now());
         o.setConfirmacoes(0);
-        o.setStatus("ABERTA");
+        o.setStatus("ATIVA");
         ocorrenciaDao.inserir(o);
     }
 
     public Ocorrencia confirmarOcorrencia(Long id) throws SQLException {
         Ocorrencia ocorrencia = buscarPorId(id);
-        if ("ENCERRADA".equals(ocorrencia.getStatus())) {
-            throw new RegraNegocioException("Não é possível confirmar uma ocorrência encerrada");
+        if ("RESOLVIDA".equals(ocorrencia.getStatus())) {
+            throw new RegraNegocioException("Não é possível confirmar uma ocorrência resolvida");
         }
 
         ocorrencia.incrementarConfirmacao();
 
-        // Atingiu o mínimo: vira CONFIRMADA e o autor ganha reputação
-        if ("ABERTA".equals(ocorrencia.getStatus())
-                && ocorrencia.getConfirmacoes() >= CONFIRMACOES_NECESSARIAS) {
-            ocorrencia.setStatus("CONFIRMADA");
+        // Acabou de atingir o mínimo: o autor ganha reputação (só uma vez, na passagem exata)
+        if (ocorrencia.getConfirmacoes() == Ocorrencia.CONFIRMACOES_NECESSARIAS) {
             Usuario autor = usuarioDao.buscarPorId(ocorrencia.getIdUsuario());
             if (autor != null) {
                 autor.adicionarReputacao(PONTOS_OCORRENCIA_CONFIRMADA);
@@ -84,12 +79,13 @@ public class OcorrenciaBO {
     }
 
     /**
-     * Recalcula o status da estação a partir das ocorrências CONFIRMADAS.
+     * Recalcula o status da estação a partir das ocorrências CONFIRMADAS
+     * (ATIVA e com pelo menos 3 confirmações).
      * Prioridade: PARALISADA > LENTIDAO > ATENCAO > NORMAL
      */
     public void avaliarImpactoEstacao(Long idEstacao) throws SQLException {
         List<Ocorrencia> confirmadas = ocorrenciaDao.listarPorEstacao(idEstacao).stream()
-                .filter(o -> "CONFIRMADA".equals(o.getStatus()))
+                .filter(Ocorrencia::isConfirmada)
                 .toList();
 
         String novoStatus = "NORMAL";
@@ -98,21 +94,21 @@ public class OcorrenciaBO {
                 novoStatus = "PARALISADA";
                 break;   // pior caso possível, não precisa olhar o resto
             }
-            if ("LENTIDAO".equals(o.getTipo()) || "SUPERLOTACAO".equals(o.getTipo())) {
+            if ("ATRASO".equals(o.getTipo()) || "LOTACAO".equals(o.getTipo())) {
                 novoStatus = "LENTIDAO";
             } else if ("NORMAL".equals(novoStatus)) {
-                novoStatus = "ATENCAO";
+                novoStatus = "ATENCAO";   // ex: ESCADA_ROLANTE
             }
         }
         estacaoDao.atualizarStatus(idEstacao, novoStatus);
     }
 
-    public Ocorrencia encerrarOcorrencia(Long id) throws SQLException {
+    public Ocorrencia resolverOcorrencia(Long id) throws SQLException {
         Ocorrencia ocorrencia = buscarPorId(id);
-        if ("ENCERRADA".equals(ocorrencia.getStatus())) {
-            throw new RegraNegocioException("Esta ocorrência já está encerrada");
+        if ("RESOLVIDA".equals(ocorrencia.getStatus())) {
+            throw new RegraNegocioException("Esta ocorrência já está resolvida");
         }
-        ocorrencia.setStatus("ENCERRADA");
+        ocorrencia.setStatus("RESOLVIDA");
         ocorrenciaDao.atualizar(ocorrencia);
         avaliarImpactoEstacao(ocorrencia.getIdEstacao());
         return ocorrencia;

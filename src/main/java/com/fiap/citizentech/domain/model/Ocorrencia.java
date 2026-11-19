@@ -22,6 +22,9 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class Ocorrencia {
 
+    // Regra do domínio: quantas confirmações a comunidade precisa dar
+    public static final int CONFIRMACOES_NECESSARIAS = 3;
+
     private Long id;
 
     @NotNull(message = "O id do usuário é obrigatório")
@@ -49,4 +52,12 @@ public class Ocorrencia {
     public void incrementarConfirmacao() {
         this.confirmacoes = (confirmacoes == null ? 0 : confirmacoes) + 1;
     }
+
+    // Confirmada = ainda ATIVA e com o mínimo de confirmações da comunidade
+    public boolean isConfirmada() {
+        return "ATIVA".equals(status)
+                && confirmacoes != null
+                && confirmacoes >= CONFIRMACOES_NECESSARIAS;
+    }
+
 }

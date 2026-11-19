@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +21,7 @@ public class UsuarioDAO {
 
     public void inserir(Usuario u) throws SQLException {
         String sql = "INSERT INTO TB_MTR_USUARIO (NM_USUARIO, DS_EMAIL, DS_SENHA, "
-                + "NR_PONTOS_REPUTACAO, DS_LINHA_FAVORITA) VALUES (?, ?, ?, ?, ?)";
+                + "NR_PONTOS_REPUTACAO, ID_LINHA_FAVORITA) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conexao = connectionFactory.obterConexao();
              PreparedStatement ps = conexao.prepareStatement(sql, new String[]{"ID_USUARIO"})) {
@@ -29,7 +30,7 @@ public class UsuarioDAO {
             ps.setString(2, u.getEmail());
             ps.setString(3, u.getSenha());
             ps.setInt(4, u.getPontosReputacao());
-            ps.setString(5, u.getLinhaFavorita());
+            setLongOuNulo(ps, 5, u.getIdLinhaFavorita());
             ps.executeUpdate();
 
             // Recupera o id gerado pelo banco e coloca no objeto
@@ -98,7 +99,7 @@ public class UsuarioDAO {
 
     public void atualizar(Usuario u) throws SQLException {
         String sql = "UPDATE TB_MTR_USUARIO SET NM_USUARIO = ?, DS_EMAIL = ?, DS_SENHA = ?, "
-                + "DS_LINHA_FAVORITA = ? WHERE ID_USUARIO = ?";
+                + "ID_LINHA_FAVORITA = ? WHERE ID_USUARIO = ?";
 
         try (Connection conexao = connectionFactory.obterConexao();
              PreparedStatement ps = conexao.prepareStatement(sql)) {
@@ -106,7 +107,7 @@ public class UsuarioDAO {
             ps.setString(1, u.getNome());
             ps.setString(2, u.getEmail());
             ps.setString(3, u.getSenha());
-            ps.setString(4, u.getLinhaFavorita());
+            setLongOuNulo(ps, 4, u.getIdLinhaFavorita());
             ps.setLong(5, u.getId());
             ps.executeUpdate();
         }
@@ -124,14 +125,31 @@ public class UsuarioDAO {
         }
     }
 
+    /**
+     * Apaga o usuário e o que ele criou (mensagens e ocorrências), numa TRANSAÇÃO.
+     * Assim funciona mesmo que as chaves estrangeiras não tenham ON DELETE CASCADE.
+     */
     public void deletar(Long id) throws SQLException {
-        String sql = "DELETE FROM TB_MTR_USUARIO WHERE ID_USUARIO = ?";
+        String[] comandos = {
+                "DELETE FROM TB_MTR_MENSAGEM_CHAT WHERE ID_USUARIO = ?",
+                "DELETE FROM TB_MTR_OCORRENCIA WHERE ID_USUARIO = ?",
+                "DELETE FROM TB_MTR_USUARIO WHERE ID_USUARIO = ?"
+        };
 
-        try (Connection conexao = connectionFactory.obterConexao();
-             PreparedStatement ps = conexao.prepareStatement(sql)) {
-
-            ps.setLong(1, id);
-            ps.executeUpdate();
+        try (Connection conexao = connectionFactory.obterConexao()) {
+            conexao.setAutoCommit(false);   // inicia a transação
+            try {
+                for (String sql : comandos) {
+                    try (PreparedStatement ps = conexao.prepareStatement(sql)) {
+                        ps.setLong(1, id);
+                        ps.executeUpdate();
+                    }
+                }
+                conexao.commit();           // confirma tudo
+            } catch (SQLException e) {
+                conexao.rollback();         // desfaz tudo se algo falhar
+                throw e;
+            }
         }
     }
 
@@ -143,7 +161,22 @@ public class UsuarioDAO {
                 rs.getString("DS_EMAIL"),
                 rs.getString("DS_SENHA"),
                 rs.getInt("NR_PONTOS_REPUTACAO"),
-                rs.getString("DS_LINHA_FAVORITA")
+                getLongOuNulo(rs, "ID_LINHA_FAVORITA")
         );
+    }
+
+    // A linha favorita é opcional: grava NULL no banco quando não foi informada
+    private void setLongOuNulo(PreparedStatement ps, int posicao, Long valor) throws SQLException {
+        if (valor == null) {
+            ps.setNull(posicao, Types.NUMERIC);
+        } else {
+            ps.setLong(posicao, valor);
+        }
+    }
+
+    // rs.getLong devolve 0 quando a coluna é NULL; wasNull() diferencia os dois casos
+    private Long getLongOuNulo(ResultSet rs, String coluna) throws SQLException {
+        long valor = rs.getLong(coluna);
+        return rs.wasNull() ? null : valor;
     }
 }

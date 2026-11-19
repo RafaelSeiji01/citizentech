@@ -9,8 +9,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter  //loombook
-@Setter //loombook
+/**
+ * Usuário da comunidade. Pode reportar ocorrências e conversar
+ * no mural (chat) de cada estação.
+ */
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Usuario {
@@ -26,6 +30,7 @@ public class Usuario {
     @Size(max = 120, message = "O e-mail deve ter no máximo 120 caracteres")
     private String email;
 
+    // WRITE_ONLY: a senha é recebida no JSON, mas nunca é devolvida nas respostas
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @NotBlank(message = "A senha é obrigatória")
     @Size(min = 6, max = 100, message = "A senha deve ter entre 6 e 100 caracteres")
@@ -33,10 +38,10 @@ public class Usuario {
 
     private Integer pontosReputacao;
 
-    @Size(max = 30, message = "A linha favorita deve ter no máximo 30 caracteres")
-    private String linhaFavorita;
+    // Opcional: id da linha favorita (FK para TB_MTR_LINHA)
+    private Long idLinhaFavorita;
 
-    // Comportamento do domínio: continua escrito à mão
+    // Comportamento do domínio: a reputação nunca fica abaixo de zero
     public void adicionarReputacao(int pontos) {
         int atual = pontosReputacao == null ? 0 : pontosReputacao;
         this.pontosReputacao = Math.max(0, atual + pontos);

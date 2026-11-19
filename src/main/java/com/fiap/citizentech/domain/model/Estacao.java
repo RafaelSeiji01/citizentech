@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Estação do metrô. O statusAtual é atualizado automaticamente
- * conforme as ocorrências confirmadas pela comunidade.
+ * Estação do metrô. Cada estação existe uma vez só; as linhas
+ * em que ela aparece ficam na tabela associativa (LinhaEstacao).
  */
 @Getter
 @Setter
@@ -22,10 +22,6 @@ public class Estacao {
     @NotBlank(message = "O nome da estação é obrigatório")
     @Size(max = 80, message = "O nome deve ter no máximo 80 caracteres")
     private String nome;
-
-    @NotBlank(message = "A linha é obrigatória")
-    @Size(max = 30, message = "A linha deve ter no máximo 30 caracteres")
-    private String linha;
 
     private String statusAtual;
 }
